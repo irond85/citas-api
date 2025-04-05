@@ -9,7 +9,7 @@ public interface UsuarioServicio {
 
 	List<UsuarioDto> obtenerUsuarios() throws Exception;
 
-	void crearUsuario(UsuarioDto usuarioDto) throws Exception;
+	UsuarioDto crearUsuario(UsuarioDto usuarioDto) throws Exception;
 
 	UsuarioDto obtenerUsuarioDtoPorId(Long idUsuario);
 	

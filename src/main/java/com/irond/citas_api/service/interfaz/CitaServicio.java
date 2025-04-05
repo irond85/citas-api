@@ -11,14 +11,14 @@ public interface CitaServicio {
 
 	List<CitaDto> getCitas();
 
-	void crearCita(CitaDto citaDto);
-	
+	String crearCita(CitaDto citaDto);
+
 	CitaDto obtenerCitaPorInfo(Long idCliente, Long idResponsable, Date dtmFechaCita, Integer intEstado);
-	
-	CitaDto actualizarCita(CitaDto citaDto);
-	
+
+	String actualizarCita(CitaDto citaDto, Long idCita);
+
 	CitaDto obtenerCitaPorId(Long idCita);
-	
+
 	void cancelarCita(Long idCita);
 
 }

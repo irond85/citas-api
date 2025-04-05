@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -36,8 +37,16 @@ public class CitaController {
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.OK)
-	private void createCita(@Valid @RequestBody CitaDto citaDto) throws Exception {
-		citaServicio.crearCita(citaDto);
+	private ResponseEntity<String> createCita(@Valid @RequestBody CitaDto citaDto) throws Exception {
+		try {
+			String response = citaServicio.crearCita(citaDto);
+			if (!response.equalsIgnoreCase("OK")) {
+				return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+			}
+			return ResponseEntity.status(HttpStatus.CREATED).build();
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+		}
 	}
 
 	@GetMapping(value = "/{id}")
@@ -52,10 +61,18 @@ public class CitaController {
 		citaServicio.cancelarCita(id);
 	}
 
-	@PatchMapping
-	@ResponseStatus(HttpStatus.OK)
-	private CitaDto updateCita(@Valid @RequestBody CitaDto citaDto) throws Exception {
-		return citaServicio.actualizarCita(citaDto);
+	@PatchMapping(value = "/{id}")
+	private ResponseEntity<String> updateCita(@Valid @RequestBody CitaDto citaDto, @PathVariable Long id)
+			throws Exception {
+		try {
+			String response = citaServicio.actualizarCita(citaDto, id);
+			if (!response.equalsIgnoreCase("OK")) {
+				return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+			}
+			return ResponseEntity.status(HttpStatus.OK).build();
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+		}
 	}
 
 }

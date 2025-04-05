@@ -12,8 +12,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.persistence.Temporal;
-import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
@@ -27,13 +25,11 @@ public class Cita {
 	private Long idCita;
 
 	@Basic
-	@Temporal(TemporalType.TIMESTAMP)
 	@NotNull(message = "La fecha de la cita no puede ser nula")
 	private Date dtmCita;
 
 	@Basic
 	@CreationTimestamp
-	@Temporal(TemporalType.TIMESTAMP)
 	private Date dtmCreacionReserva;
 
 	@ManyToOne

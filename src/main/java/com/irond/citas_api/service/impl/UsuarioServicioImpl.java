@@ -49,12 +49,12 @@ public class UsuarioServicioImpl implements UsuarioServicio {
 	}
 
 	@Override
-	public void crearUsuario(UsuarioDto usuarioDto) throws Exception {
+	public UsuarioDto crearUsuario(UsuarioDto usuarioDto) throws Exception {
 		try {
 			Usuario usuarioExistente = this.obtenerUsuarioPorId(usuarioDto.getIdDocumento());
 			if (usuarioExistente != null) {
 				log.error("Usuario ya existente " + usuarioDto.getIdDocumento());
-				return;
+				return null;
 			}
 
 			Usuario usuarioNuevo = new Usuario();
@@ -62,10 +62,10 @@ public class UsuarioServicioImpl implements UsuarioServicio {
 			usuarioNuevo.setStrNombre(usuarioDto.getStrNombre());
 			usuarioNuevo.setStrTelefono(usuarioDto.getStrTelefono());
 			usuarioNuevo.setStrCorreo(usuarioDto.getStrCorreo());
-			usuarioNuevo.setIdRolUsuario(1);
+			usuarioNuevo.setIdRolUsuario(usuarioDto.getIdRolUsuario());
 
 			repository.save(usuarioNuevo);
-
+			return usuarioDto;
 		} catch (Exception e) {
 			log.error("Error ejecutando servicio crearUsuario() " + usuarioDto.getIdDocumento(), e);
 			throw new Exception();

@@ -72,6 +72,7 @@ public class CitaServicioImpl implements CitaServicio {
 			List<CitaDto> listCitaDto = listCitas.stream().map(cita -> {
 				CitaDto citaDto = new CitaDto();
 				citaDto.setIdCita(cita.getIdCita());
+				citaDto.setDtmCita(cita.getDtmCita());
 				citaDto.setIdCliente(cita.getUsuarioCliente().getIdDocumento());
 				citaDto.setIdResponsable(cita.getUsuarioResponsable().getIdDocumento());
 				citaDto.setIntCambiosCita(cita.getIntCambiosCita());
@@ -100,23 +101,33 @@ public class CitaServicioImpl implements CitaServicio {
 	}
 
 	@Override
-	public void crearCita(CitaDto citaDto) {
+	public String crearCita(CitaDto citaDto) {
 		try {
 			Usuario usuarioCliente = usuarioService.obtenerUsuarioPorId(citaDto.getIdCliente());
 			if (usuarioCliente == null) {
-				return;
+				String error = new String("Error: El cliente no existe " + citaDto.getIdCliente());
+				log.error(error);
+				return error;
 			}
 
 			Usuario usuarioResponsable = usuarioService.obtenerUsuarioPorId(citaDto.getIdResponsable());
 			if (usuarioResponsable == null) {
-				return;
+				String error = new String("Error: El responsable no existe " + citaDto.getIdResponsable());
+				log.error(error);
+				return error;
+			} else if (usuarioResponsable.getIdRolUsuario() != 0) {
+				String error = new String("Error: Cliente sin autorizacion " + citaDto.getIdCliente());
+				log.error(error);
+				return error;
 			}
 
 			CitaDto citaExistente = obtenerCitaPorInfo(citaDto.getIdCliente(), citaDto.getIdResponsable(),
 					citaDto.getDtmCita(), citaDto.getIntEstado());
 			if (citaExistente != null) {
-				log.error("Cita ya existente " + citaExistente.getIdCliente() + " " + citaExistente.getDtmCita());
-				return;
+				String error = new String(
+						"Error: Cita ya existente " + citaExistente.getIdCliente() + " " + citaExistente.getDtmCita());
+				log.error(error);
+				return error;
 			}
 
 			Cita nuevaCita = new Cita();
@@ -128,10 +139,12 @@ public class CitaServicioImpl implements CitaServicio {
 			nuevaCita.setStrObservaciones(citaDto.getStrObservaciones());
 
 			repository.save(nuevaCita);
-			mvtoService.crearMovimiento(nuevaCita, "Creacion de cita. ");
+			mvtoService.crearMovimiento(nuevaCita, "Creacion de cita. " + nuevaCita.getDtmCita());
+			return new String("OK");
 		} catch (Exception e) {
 			log.error(
 					"Error ejecutando servicio crearCita() " + citaDto.getIdCliente() + " " + citaDto.getDtmCita() + e);
+			return new String("Error");
 		}
 	}
 
@@ -147,31 +160,41 @@ public class CitaServicioImpl implements CitaServicio {
 	}
 
 	@Override
-	public CitaDto actualizarCita(CitaDto citaDto) {
+	public String actualizarCita(CitaDto citaDto, Long idCita) {
 		try {
-			Cita citaExistente = obtenerCita(citaDto.getIdCita());
-			if (citaExistente != null) {
-				Integer totalCambiosCitas = citaExistente.getIntCambiosCita();
-				if (citaExistente.getIntEstado() == 2 || totalCambiosCitas > 1) {
-					log.error("Cita no se puede modificar " + citaExistente.getIdCita() + " "
-							+ citaExistente.getDtmCita());
-					return null;
+			if (citaDto != null) {
+				Cita citaExistente = obtenerCita(idCita);
+				if (citaExistente != null) {
+					Integer totalCambiosCitas = citaExistente.getIntCambiosCita();
+					if (citaExistente.getIntEstado() == 2 || totalCambiosCitas > 1) {
+						String error = new String("Cita no se puede modificar " + citaExistente.getIdCita() + " "
+								+ citaExistente.getDtmCita());
+						log.error(error);
+						return error;
+					}
+
+					if (citaExistente.getDtmCita().compareTo(citaDto.getDtmCita()) == 0) {
+						String error = new String(
+								"Cita sin cambios " + citaExistente.getIdCita() + " " + citaExistente.getDtmCita());
+						log.error(error);
+						return error;
+					}
+
+					citaExistente.setDtmCita(citaDto.getDtmCita());
+					citaExistente.setIntCambiosCita(totalCambiosCitas++);
+					citaExistente.setIntEstado(1);
+					citaExistente.setStrObservaciones(citaDto.getStrObservaciones());
+
+					repository.save(citaExistente);
+					mvtoService.crearMovimiento(citaExistente, "Modificacion Cita. " + citaExistente.getDtmCita());
+					return new String("OK");
 				}
-
-				citaExistente.setDtmCita(citaDto.getDtmCita());
-				citaExistente.setIntCambiosCita(totalCambiosCitas++);
-				citaExistente.setIntEstado(1);
-				citaExistente.setStrObservaciones(citaDto.getStrObservaciones());
-
-				repository.save(citaExistente);
-				mvtoService.crearMovimiento(citaExistente, "Modificacion Cita. ");
-				return citaDto;
 			}
 		} catch (Exception e) {
 			log.error("Error ejecutando servicio obtenerCitaPorInfo() " + citaDto.getIdCliente() + " "
 					+ citaDto.getDtmCita() + e);
 		}
-		return null;
+		return new String("Error: Cita sin cambios.");
 	}
 
 	private Cita obtenerCita(Long idCita) {
@@ -192,7 +215,7 @@ public class CitaServicioImpl implements CitaServicio {
 			Cita cita = obtenerCita(idCita);
 			if (cita != null) {
 				cita.setIntEstado(2);
-				mvtoService.crearMovimiento(cita, "Cancelacion de cita. ");
+				mvtoService.crearMovimiento(cita, "Cancelacion de cita. " + cita.getDtmCita());
 			}
 		} catch (Exception e) {
 			log.error("Error ejecutando servicio cancelarCita() " + idCita + e);
@@ -206,6 +229,7 @@ public class CitaServicioImpl implements CitaServicio {
 			if (cita != null) {
 				CitaDto citaDto = new CitaDto();
 				citaDto.setIdCita(cita.getIdCita());
+				citaDto.setDtmCita(cita.getDtmCita());
 				citaDto.setIdCliente(cita.getUsuarioCliente().getIdDocumento());
 				citaDto.setIdResponsable(cita.getUsuarioResponsable().getIdDocumento());
 				citaDto.setIntCambiosCita(cita.getIntCambiosCita());
@@ -219,5 +243,8 @@ public class CitaServicioImpl implements CitaServicio {
 		}
 		return null;
 	}
+
+//	TODO: Agregar servicio para validar citas a la misma hora que la requerida
+//	Esto iria en el actualizar y crear cita
 
 }
